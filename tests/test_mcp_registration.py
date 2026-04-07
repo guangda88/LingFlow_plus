@@ -18,8 +18,8 @@ from lingflow_plus.mcp_registry import (
 
 
 class TestAgentTarget:
-    def test_all_ten_agents_exist(self):
-        expected = {"灵犀", "灵克", "灵通", "灵依", "灵通问道", "灵知", "灵信", "智桥", "灵极优", "本地"}
+    def test_all_twelve_agents_exist(self):
+        expected = {"灵犀", "灵克", "灵通", "灵依", "灵通问道", "灵知", "灵信", "智桥", "灵极优", "灵扬", "灵妍", "本地"}
         actual = {a.value for a in AgentTarget}
         assert actual == expected
 
@@ -490,8 +490,8 @@ class TestToolRouterNewMethods:
 
 
 class TestMCPRegistry:
-    def test_ten_servers_registered(self):
-        assert len(MCP_SERVERS) == 10
+    def test_twelve_servers_registered(self):
+        assert len(MCP_SERVERS) == 12
 
     def test_all_transport_types(self):
         transports = {c.transport for c in MCP_SERVERS.values()}
@@ -514,7 +514,7 @@ class TestMCPRegistry:
     def test_lingyi_config(self):
         config = get_server_config("lingyi")
         assert config is not None
-        assert len(config.tools) == 12
+        assert len(config.tools) == 27
 
     def test_lingtongask_config(self):
         config = get_server_config("lingtongask")
@@ -555,7 +555,7 @@ class TestMCPRegistry:
 
     def test_get_all_server_configs(self):
         configs = get_all_server_configs()
-        assert len(configs) == 10
+        assert len(configs) == 12
 
     def test_find_server_for_tool(self):
         result = find_server_for_tool("run_workflow")
@@ -576,8 +576,8 @@ class TestMCPRegistry:
 
     def test_get_server_stats(self):
         stats = get_server_stats()
-        assert stats["total_servers"] == 10
-        assert stats["total_tools"] >= 95
+        assert stats["total_servers"] == 12
+        assert stats["total_tools"] >= 140
         assert "灵通" in stats["by_agent"]
         assert "灵克" in stats["by_agent"]
 
@@ -610,3 +610,135 @@ class TestRouterRegistryConsistency:
         for key, config in MCP_SERVERS.items():
             assert any(a.name.lower() == config.agent_id or a.value == config.name for a in AgentTarget), \
                 f"No AgentTarget for {key} ({config.name}, agent_id={config.agent_id})"
+
+
+# ── Cross-Registration Integrity Tests ──
+
+
+class TestCrossRegistrationIntegrity:
+    """Validate cross-registration: every MCP server entry point must exist on disk,
+    all tool counts must match source-of-truth, no duplicate tools across servers."""
+
+    def test_all_server_paths_exist(self):
+        """Every MCPServerConfig with working_dir or args pointing to files must resolve."""
+        from pathlib import Path
+
+        for key, config in MCP_SERVERS.items():
+            if config.working_dir:
+                assert Path(config.working_dir).exists(), f"{key}: working_dir {config.working_dir} not found"
+            for arg in config.args:
+                if arg.endswith(".py") or arg.endswith(".js") or arg.endswith(".ts"):
+                    if arg.startswith("/"):
+                        assert Path(arg).exists(), f"{key}: arg path {arg} not found"
+
+    def test_no_duplicate_tools_across_servers(self):
+        """Tool names shared across servers are allowed only if resolved by router priority."""
+        tool_to_servers: dict = {}
+        for key, config in MCP_SERVERS.items():
+            for tool in config.tools:
+                if tool not in tool_to_servers:
+                    tool_to_servers[tool] = []
+                tool_to_servers[tool].append(key)
+        collisions = {t: keys for t, keys in tool_to_servers.items() if len(keys) > 1}
+        known_accepted = {"knowledge_search", "list_categories"}
+        unresolved = {t: keys for t, keys in collisions.items() if t not in known_accepted}
+        assert unresolved == {}, f"Unresolved tool collisions: {unresolved}"
+
+    def test_lingyang_registered(self):
+        config = get_server_config("lingyang")
+        assert config is not None
+        assert config.name == "灵扬"
+        assert len(config.tools) == 14
+        assert "collect_metrics" in config.tools
+        assert "add_contact" in config.tools
+
+    def test_lingresearch_registered(self):
+        config = get_server_config("lingresearch")
+        assert config is not None
+        assert config.name == "灵妍"
+        assert len(config.tools) == 16
+        assert "add_intel" in config.tools
+        assert "generate_digest" in config.tools
+
+    def test_lingyi_all_27_tools_registered(self):
+        config = get_server_config("lingyi")
+        assert len(config.tools) == 27
+        expected_new = [
+            "today_schedule", "week_schedule", "smart_remind",
+            "done_plan", "week_plans", "plan_stats",
+            "list_projects", "save_session", "last_session",
+            "search_knowledge", "speak", "synthesize_to_file",
+            "transcribe", "council_scan", "council_health",
+        ]
+        for tool in expected_new:
+            assert tool in config.tools, f"Missing tool: {tool}"
+
+    def test_no_hardcoded_home_in_source(self):
+        """Source code of mcp_registry.py must not contain hardcoded /home/ai/ paths."""
+        from pathlib import Path
+        source = (Path(__file__).parent.parent / "lingflow_plus" / "mcp_registry.py").read_text()
+        assert '"/home/ai/' not in source, "Hardcoded /home/ai/ path found in mcp_registry.py source"
+        assert "'/home/ai/" not in source, "Hardcoded /home/ai/ path found in mcp_registry.py source"
+
+    def test_total_tool_count_matches_registry(self):
+        """Sum of all server tools must match get_server_stats."""
+        stats = get_server_stats()
+        manual_count = sum(len(c.tools) for c in MCP_SERVERS.values())
+        assert stats["total_tools"] == manual_count
+
+    def test_router_all_new_agent_tools_routable(self):
+        """Every tool in lingyang and lingresearch must have an exact-match route."""
+        router = ToolRouter()
+        for key in ("lingyang", "lingresearch"):
+            config = get_server_config(key)
+            assert config is not None
+            for tool in config.tools:
+                rule = router.route(tool)
+                assert rule is not None, f"Tool '{tool}' from {key} has no route"
+                assert rule.tool_name == tool, f"Tool '{tool}' routed to wrong tool: {rule.tool_name}"
+
+
+class TestCrossRegistrationRouting:
+    """End-to-end routing tests for cross-registered tools."""
+
+    def test_route_metric_to_lingyang(self):
+        router = ToolRouter()
+        rule = router.route("collect_metrics")
+        assert rule is not None
+        assert rule.target == AgentTarget.LINGYANG
+
+    def test_route_intel_to_lingresearch(self):
+        router = ToolRouter()
+        rule = router.route("add_intel")
+        assert rule is not None
+        assert rule.target == AgentTarget.LINGRESEARCH
+
+    def test_route_schedule_to_lingyi(self):
+        router = ToolRouter()
+        rule = router.route("today_schedule")
+        assert rule is not None
+        assert rule.target == AgentTarget.LINGYI
+
+    def test_route_contact_to_lingyang(self):
+        router = ToolRouter()
+        rule = router.route("add_contact")
+        assert rule is not None
+        assert rule.target == AgentTarget.LINGYANG
+
+    def test_route_digest_to_lingresearch(self):
+        router = ToolRouter()
+        rule = router.route("generate_digest")
+        assert rule is not None
+        assert rule.target == AgentTarget.LINGRESEARCH
+
+    def test_alias_metric_routes(self):
+        router = ToolRouter()
+        rule = router.route("metric")
+        assert rule is not None
+        assert rule.target == AgentTarget.LINGYANG
+
+    def test_alias_research_routes(self):
+        router = ToolRouter()
+        rule = router.route("research")
+        assert rule is not None
+        assert rule.target == AgentTarget.LINGRESEARCH

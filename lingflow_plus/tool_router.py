@@ -1,15 +1,17 @@
 from __future__ import annotations
 """工具路由层
 
-按任务类型路由到对应的灵字辈 Agent，覆盖生态 10 个 MCP 服务器 99 个工具：
+按任务类型路由到对应的灵字辈 Agent，覆盖生态 12 个 MCP 服务器 156 个工具：
 - 灵犀 (Ling-term-mcp): 终端命令、会话管理
 - 灵克 (LingClaude): 代码读写、搜索、Git、分析、优化
 - 灵通 (LingFlow): 工作流、技能、测试、监控、需求、文件操作
-- 灵依 (LingYi): 备忘、日程、计划、项目巡逻、情报
+- 灵依 (LingYi): 备忘、日程、计划、项目巡逻、情报、语音
 - 灵通问道 (LingTongAsk): 情感分析、语音合成、内容生成
 - 灵知 (zhineng-knowledge-system): 知识检索、问答、领域查询
 - 灵信 (LingMessage): 消息总线、标注、签名
 - 智桥 (zhineng-bridge): 跨平台通信
+- 灵扬 (LingYang): 项目度量、联系人管理
+- 灵妍 (LingResearch): 研究情报采集与分析
 
 所有工具通过 MCP 协议访问，不做源码级 import。
 """
@@ -32,6 +34,8 @@ class AgentTarget(Enum):
     LINGMESSAGE = "灵信"
     ZHIBRIDGE = "智桥"
     LINGYOU = "灵极优"
+    LINGYANG = "灵扬"
+    LINGRESEARCH = "灵妍"
     LOCAL = "本地"
 
 
@@ -141,6 +145,21 @@ DEFAULT_RULES: List[RouteRule] = [
     RouteRule("schedule", AgentTarget.LINGYI, "list_schedules", 8),
     RouteRule("briefing", AgentTarget.LINGYI, "get_briefing", 9),
     RouteRule("patrol", AgentTarget.LINGYI, "patrol_project", 8),
+    RouteRule("today_schedule", AgentTarget.LINGYI, "today_schedule", 9),
+    RouteRule("week_schedule", AgentTarget.LINGYI, "week_schedule", 9),
+    RouteRule("smart_remind", AgentTarget.LINGYI, "smart_remind", 8),
+    RouteRule("done_plan", AgentTarget.LINGYI, "done_plan", 8),
+    RouteRule("week_plans", AgentTarget.LINGYI, "week_plans", 8),
+    RouteRule("plan_stats", AgentTarget.LINGYI, "plan_stats", 8),
+    RouteRule("list_projects", AgentTarget.LINGYI, "list_projects", 8),
+    RouteRule("save_session", AgentTarget.LINGYI, "save_session", 8),
+    RouteRule("last_session", AgentTarget.LINGYI, "last_session", 8),
+    RouteRule("speak", AgentTarget.LINGYI, "speak", 8),
+    RouteRule("transcribe", AgentTarget.LINGYI, "transcribe", 8),
+    RouteRule("synthesize_to_file", AgentTarget.LINGYI, "synthesize_to_file", 8),
+    RouteRule("council_scan", AgentTarget.LINGYI, "council_scan", 7),
+    RouteRule("council_health", AgentTarget.LINGYI, "council_health", 7),
+    RouteRule("search_knowledge", AgentTarget.LINGYI, "search_knowledge", 8),
 
     # ── 灵通问道 (LingTongAsk): 语音/内容 ──
     RouteRule("analyze_emotion", AgentTarget.LINGTONGASK, "analyze_emotion", 10),
@@ -198,6 +217,44 @@ DEFAULT_RULES: List[RouteRule] = [
 
     # ── 灵极优 (LingMinOpt): 优化 ──
     RouteRule("optimize", AgentTarget.LINGYOU, "optimize", 7),
+
+    # ── 灵扬 (LingYang): 度量/联系人 ──
+    RouteRule("collect_metrics", AgentTarget.LINGYANG, "collect_metrics", 10),
+    RouteRule("latest_metrics", AgentTarget.LINGYANG, "latest_metrics", 10),
+    RouteRule("metrics_history", AgentTarget.LINGYANG, "metrics_history", 9),
+    RouteRule("format_report", AgentTarget.LINGYANG, "format_report", 9),
+    RouteRule("growth_report", AgentTarget.LINGYANG, "growth_report", 9),
+    RouteRule("format_growth", AgentTarget.LINGYANG, "format_growth", 8),
+    RouteRule("cleanup_old_metrics", AgentTarget.LINGYANG, "cleanup_old_metrics", 7),
+    RouteRule("add_contact", AgentTarget.LINGYANG, "add_contact", 10),
+    RouteRule("list_contacts", AgentTarget.LINGYANG, "list_contacts", 10),
+    RouteRule("get_contact", AgentTarget.LINGYANG, "get_contact", 9),
+    RouteRule("find_contacts", AgentTarget.LINGYANG, "find_contacts", 9),
+    RouteRule("update_contact", AgentTarget.LINGYANG, "update_contact", 8),
+    RouteRule("delete_contact", AgentTarget.LINGYANG, "delete_contact", 8),
+    RouteRule("contacts_summary", AgentTarget.LINGYANG, "contacts_summary", 8),
+    RouteRule("metric", AgentTarget.LINGYANG, "latest_metrics", 8),
+    RouteRule("contact", AgentTarget.LINGYANG, "list_contacts", 8),
+
+    # ── 灵妍 (LingResearch): 研究情报 ──
+    RouteRule("add_intel", AgentTarget.LINGRESEARCH, "add_intel", 10),
+    RouteRule("from_identity_test", AgentTarget.LINGRESEARCH, "from_identity_test", 10),
+    RouteRule("from_hallucination_event", AgentTarget.LINGRESEARCH, "from_hallucination_event", 10),
+    RouteRule("from_test_result", AgentTarget.LINGRESEARCH, "from_test_result", 10),
+    RouteRule("from_experiment", AgentTarget.LINGRESEARCH, "from_experiment", 10),
+    RouteRule("from_agent_behavior", AgentTarget.LINGRESEARCH, "from_agent_behavior", 10),
+    RouteRule("list_intel", AgentTarget.LINGRESEARCH, "list_intel", 9),
+    RouteRule("clear_intel", AgentTarget.LINGRESEARCH, "clear_intel", 8),
+    RouteRule("intel_summary", AgentTarget.LINGRESEARCH, "intel_summary", 9),
+    RouteRule("record_assertion", AgentTarget.LINGRESEARCH, "record_assertion", 9),
+    RouteRule("score_counterfactual", AgentTarget.LINGRESEARCH, "score_counterfactual", 8),
+    RouteRule("get_baseline", AgentTarget.LINGRESEARCH, "get_baseline", 8),
+    RouteRule("get_consistency", AgentTarget.LINGRESEARCH, "get_consistency", 8),
+    RouteRule("generate_digest", AgentTarget.LINGRESEARCH, "generate_digest", 8),
+    RouteRule("generate_digest_markdown", AgentTarget.LINGRESEARCH, "generate_digest_markdown", 8),
+    RouteRule("relay_intel", AgentTarget.LINGRESEARCH, "relay_intel", 8),
+    RouteRule("intel", AgentTarget.LINGRESEARCH, "list_intel", 7),
+    RouteRule("research", AgentTarget.LINGRESEARCH, "intel_summary", 7),
 ]
 
 

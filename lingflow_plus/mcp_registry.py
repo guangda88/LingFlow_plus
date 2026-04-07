@@ -81,6 +81,11 @@ MCP_SERVERS: Dict[str, MCPServerConfig] = {
             "add_plan", "list_plans", "show_project",
             "generate_report", "patrol_project", "get_briefing",
             "digest_content", "ask_lingzhi",
+            "today_schedule", "week_schedule", "smart_remind",
+            "done_plan", "week_plans", "plan_stats",
+            "list_projects", "save_session", "last_session",
+            "search_knowledge", "speak", "synthesize_to_file",
+            "transcribe", "council_scan", "council_health",
         ],
     ),
     "lingtongask": MCPServerConfig(
@@ -117,7 +122,7 @@ MCP_SERVERS: Dict[str, MCPServerConfig] = {
         agent_id="lingmessage",
         transport=Transport.STDIO,
         command="fastmcp",
-        args=["run", "/home/ai/LingMessage/mcp_servers/annotate_server.py"],
+        args=["run", str(Path.home() / "LingMessage" / "mcp_servers" / "annotate_server.py")],
         tools=["detect_anomalies", "annotate_messages", "annotation_report"],
     ),
     "lingmessage_bus": MCPServerConfig(
@@ -125,7 +130,7 @@ MCP_SERVERS: Dict[str, MCPServerConfig] = {
         agent_id="lingmessage",
         transport=Transport.STDIO,
         command="fastmcp",
-        args=["run", "/home/ai/LingMessage/mcp_servers/lingbus_server.py"],
+        args=["run", str(Path.home() / "LingMessage" / "mcp_servers" / "lingbus_server.py")],
         tools=["open_thread", "post_reply", "poll_messages", "ack_message", "get_stats"],
     ),
     "lingmessage_signing": MCPServerConfig(
@@ -133,7 +138,7 @@ MCP_SERVERS: Dict[str, MCPServerConfig] = {
         agent_id="lingmessage",
         transport=Transport.STDIO,
         command="fastmcp",
-        args=["run", "/home/ai/LingMessage/mcp_servers/signing_server.py"],
+        args=["run", str(Path.home() / "LingMessage" / "mcp_servers" / "signing_server.py")],
         tools=["sign", "verify", "annotate_verified"],
     ),
     "lingxi": MCPServerConfig(
@@ -141,7 +146,7 @@ MCP_SERVERS: Dict[str, MCPServerConfig] = {
         agent_id="lingxi",
         transport=Transport.STDIO,
         command="node",
-        args=["/home/ai/Ling-term-mcp/dist/cli.js"],
+        args=[str(Path.home() / "Ling-term-mcp" / "dist" / "cli.js")],
         tools=[
             "execute_command", "sync_terminal",
             "list_sessions", "create_session", "destroy_session",
@@ -155,6 +160,37 @@ MCP_SERVERS: Dict[str, MCPServerConfig] = {
         args=["tsx", "src/index.ts"],
         working_dir=str(Path.home() / "zhineng-bridge" / "mcp-server"),
         tools=["hello_world"],
+    ),
+    "lingyang": MCPServerConfig(
+        name="灵扬",
+        agent_id="lingyang",
+        transport=Transport.STDIO,
+        command="python",
+        args=["-m", "src.mcp_server"],
+        working_dir=str(Path.home() / "LingYang"),
+        tools=[
+            "collect_metrics", "latest_metrics", "metrics_history",
+            "format_report", "growth_report", "format_growth",
+            "cleanup_old_metrics",
+            "add_contact", "list_contacts", "get_contact",
+            "find_contacts", "update_contact", "delete_contact",
+            "contacts_summary",
+        ],
+    ),
+    "lingresearch": MCPServerConfig(
+        name="灵妍",
+        agent_id="lingresearch",
+        transport=Transport.STDIO,
+        command="python",
+        args=[str(Path.home() / "lingresearch" / "mcp_server.py")],
+        tools=[
+            "add_intel", "from_identity_test", "from_hallucination_event",
+            "from_test_result", "from_experiment", "from_agent_behavior",
+            "list_intel", "clear_intel", "intel_summary",
+            "record_assertion", "score_counterfactual",
+            "get_baseline", "get_consistency",
+            "generate_digest", "generate_digest_markdown", "relay_intel",
+        ],
     ),
 }
 
