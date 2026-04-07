@@ -1,3 +1,4 @@
+from __future__ import annotations
 """协调器层
 
 LingFlow+ 核心协调器，组合所有子系统：
@@ -16,9 +17,6 @@ import logging
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-
-from lingflow.common.models import Task, TaskResult
-from lingflow import LingFlow
 
 from lingflow_plus.constraints import (
     ContextBudget,
@@ -58,7 +56,6 @@ class LingFlowPlus:
         self.quality_gate = QualityGate()
 
         self._scheduler: Optional[MultiProjectScheduler] = None
-        self._lingflow = LingFlow()
 
     @property
     def scheduler(self) -> MultiProjectScheduler:
@@ -72,16 +69,26 @@ class LingFlowPlus:
             )
         return self._scheduler
 
-    def run_tasks(self, tasks: List[Task], max_parallel: int = 2) -> Dict[str, TaskResult]:
-        """执行多项目任务"""
+    def run_tasks(self, tasks: List[Any], max_parallel: int = 2) -> Dict[str, Any]:
+        """执行多项目任务（带速率限制和配额感知）"""
         for task in tasks:
             if task.project:
                 self.context_budget.track(task.project, 500)
-        results = self.scheduler.execute(tasks, max_parallel)
+
+        wait = self.rate_limiter.acquire()
+        if wait > 0:
+            logger.info(f"Rate limiter: waiting {wait:.1f}s before dispatch")
+            time.sleep(wait)
+
+        try:
+            results = self.scheduler.execute(tasks, max_parallel)
+        finally:
+            self.rate_limiter.release()
+
         self._save_state()
         return results
 
-    def run_workflow_file(self, filepath: str) -> Dict[str, TaskResult]:
+    def run_workflow_file(self, filepath: str) -> Dict[str, Any]:
         """从 YAML 加载并执行跨项目工作流"""
         tasks = MultiProjectScheduler.load_tasks_from_yaml(filepath)
         return self.run_tasks(tasks)
