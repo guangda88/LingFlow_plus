@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lingflow-plus"
+version = "0.1.0"
+description = "LingFlow+ — Multi-project parallel CLI Agent for 灵字辈 ecosystem"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = [
+    "lingflow",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+lingflow-plus = "lingflow_plus.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "pytest-asyncio",
+]
+
+[tool.black]
+line-length = 127
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+line_length = 127
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
