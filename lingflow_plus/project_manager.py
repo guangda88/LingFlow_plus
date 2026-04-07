@@ -1,3 +1,4 @@
+from __future__ import annotations
 """多项目管理器
 
 管理多个灵字辈项目上下文，包括路径、终端会话、Git 状态等。
@@ -146,6 +147,7 @@ class ProjectManager:
                 "path": ctx.path,
                 "description": ctx.description,
                 "tags": ctx.tags,
+                "terminal_session": ctx.terminal_session,
             }
         with open(self._registry_path, "w") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
@@ -163,6 +165,7 @@ class ProjectManager:
                     path=info["path"],
                     description=info.get("description", ""),
                     tags=info.get("tags", []),
+                    terminal_session=info.get("terminal_session"),
                 )
             logger.info(f"Loaded {len(self._projects)} projects from {self._registry_path}")
         except (json.JSONDecodeError, OSError, KeyError) as e:

@@ -1,3 +1,4 @@
+from __future__ import annotations
 """约束层
 
 TokenQuota、RateLimiter、FileLock、ContextBudget 四大约束。

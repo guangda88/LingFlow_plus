@@ -1,3 +1,4 @@
+from __future__ import annotations
 """LingFlow+ — Multi-project parallel CLI Agent
 
 灵字辈生态系统的多项目并行协调器。

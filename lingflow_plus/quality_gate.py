@@ -1,3 +1,4 @@
+from __future__ import annotations
 """质量门
 
 自动代码审查，提交前强制质量检查。
@@ -105,9 +106,10 @@ class QualityGate:
                 warnings.append(f"Compiled/binary file: {f}")
                 score -= 5
             if "test_" not in f and f.endswith(".py"):
+                base = f.rstrip("/").split("/")[-1]
                 has_test = any(
                     tf for tf in changed_files
-                    if "test_" in tf and tf.replace("test_", "").rstrip("/").endswith(f.rstrip("/").split("/")[-1])
+                    if "test_" in tf and tf.rstrip("/").split("/")[-1] == f"test_{base}"
                 )
                 if not has_test and len(changed_files) > 3:
                     warnings.append(f"No test for: {f}")

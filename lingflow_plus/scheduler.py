@@ -1,3 +1,4 @@
+from __future__ import annotations
 """多项目并行调度器
 
 按 project 字段分组任务，组内按依赖串行调度，组间并行执行。
@@ -9,11 +10,12 @@ import logging
 import time
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
-from lingflow.common.models import Task, TaskPriority, TaskResult
-from lingflow.coordination.coordinator import AgentCoordinator
-from lingflow.workflow.orchestrator import WorkflowOrchestrator
+if TYPE_CHECKING:
+    from lingflow.common.models import Task, TaskPriority, TaskResult
+    from lingflow.coordination.coordinator import AgentCoordinator
+    from lingflow.workflow.orchestrator import WorkflowOrchestrator
 
 from lingflow_plus.project_manager import ProjectManager
 
@@ -63,14 +65,15 @@ class MultiProjectScheduler:
     def __init__(
         self,
         project_manager: Optional[ProjectManager] = None,
-        coordinator: Optional[AgentCoordinator] = None,
+        coordinator: Optional["AgentCoordinator"] = None,
         max_projects_parallel: int = DEFAULT_MAX_PROJECTS_PARALLEL,
     ):
+        from lingflow.coordination.coordinator import AgentCoordinator as _AC
         self.project_manager = project_manager or ProjectManager()
-        self.coordinator = coordinator or AgentCoordinator()
+        self.coordinator = coordinator or _AC()
         self.max_projects_parallel = max_projects_parallel
         self._statuses: Dict[str, ProjectScheduleStatus] = {}
-        self._results: Dict[str, TaskResult] = {}
+        self._results: Dict[str, Any] = {}
         self._progress_callbacks: List[Callable] = []
 
     def on_progress(self, callback: Callable) -> None:
@@ -86,15 +89,15 @@ class MultiProjectScheduler:
             "total_failed": sum(1 for r in self._results.values() if not r.success),
         }
 
-    def execute(self, tasks: List[Task], max_parallel_per_project: int = 2) -> Dict[str, TaskResult]:
+    def execute(self, tasks: List[Any], max_parallel_per_project: int = 2) -> Dict[str, Any]:
         """同步执行多项目调度"""
         return asyncio.run(self.execute_async(tasks, max_parallel_per_project))
 
     async def execute_async(
         self,
-        tasks: List[Task],
+        tasks: List[Any],
         max_parallel_per_project: int = 2,
-    ) -> Dict[str, TaskResult]:
+    ) -> Dict[str, Any]:
         """异步执行多项目调度"""
         if not tasks:
             return {}
@@ -114,14 +117,14 @@ class MultiProjectScheduler:
 
         semaphore = asyncio.Semaphore(self.max_projects_parallel)
 
-        async def _run_project(project_name: str, project_tasks: List[Task]) -> Dict[str, TaskResult]:
+        async def _run_project(project_name: str, project_tasks: List[Any]) -> Dict[str, Any]:
             async with semaphore:
                 return await self._execute_project(project_name, project_tasks, max_parallel_per_project)
 
         coros = [_run_project(name, pts) for name, pts in groups.items()]
         results_list = await asyncio.gather(*coros, return_exceptions=True)
 
-        all_results: Dict[str, TaskResult] = {}
+        all_results: Dict[str, Any] = {}
         for result in results_list:
             if isinstance(result, Exception):
                 logger.error(f"Project execution failed: {result}")
@@ -135,10 +138,12 @@ class MultiProjectScheduler:
     async def _execute_project(
         self,
         project_name: str,
-        tasks: List[Task],
+        tasks: List[Any],
         max_parallel: int,
-    ) -> Dict[str, TaskResult]:
+    ) -> Dict[str, Any]:
         """执行单个项目内的任务（带依赖感知）"""
+        from lingflow.common.models import TaskResult
+        from lingflow.workflow.orchestrator import WorkflowOrchestrator
         status = self._statuses[project_name]
         status.running = 1
         self._notify_progress()
@@ -176,7 +181,7 @@ class MultiProjectScheduler:
 
         return results
 
-    def _group_by_project(self, tasks: List[Task]) -> Dict[str, List[Task]]:
+    def _group_by_project(self, tasks: List[Any]) -> Dict[str, List[Any]]:
         """按 project 字段分组"""
         groups: Dict[str, List[Task]] = defaultdict(list)
         for task in tasks:
@@ -194,7 +199,7 @@ class MultiProjectScheduler:
                 logger.warning(f"Progress callback failed: {e}")
 
     @staticmethod
-    def load_tasks_from_yaml(filepath: str) -> List[Task]:
+    def load_tasks_from_yaml(filepath: str) -> List[Any]:
         """从 YAML 加载多项目任务
 
         YAML 格式：
@@ -207,6 +212,7 @@ class MultiProjectScheduler:
             params:
               target: src/
         """
+        from lingflow.common.models import Task, TaskPriority
         import yaml
 
         with open(filepath) as f:

@@ -69,11 +69,21 @@ class LingFlowPlus:
             )
         return self._scheduler
 
+    @staticmethod
+    def _estimate_tokens(task: Any) -> int:
+        if hasattr(task, "context") and isinstance(task.context, dict):
+            desc = task.context.get("target", "") + task.context.get("query", "")
+            return max(200, len(desc) * 4)
+        if hasattr(task, "description") and task.description:
+            return max(200, len(task.description) * 4)
+        return 500
+
     def run_tasks(self, tasks: List[Any], max_parallel: int = 2) -> Dict[str, Any]:
         """执行多项目任务（带速率限制和配额感知）"""
         for task in tasks:
             if task.project:
-                self.context_budget.track(task.project, 500)
+                estimated = self._estimate_tokens(task)
+                self.context_budget.track(task.project, estimated)
 
         wait = self.rate_limiter.acquire()
         if wait > 0:

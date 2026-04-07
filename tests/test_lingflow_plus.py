@@ -213,6 +213,24 @@ class TestToolRouter:
         routes = router.list_routes()
         assert len(routes) > 0
 
+    def test_knowledge_search_routes_to_lingzhi_only(self):
+        router = ToolRouter()
+        rule = router.route("knowledge_search")
+        assert rule is not None
+        assert rule.target == AgentTarget.LINGZHI
+        assert rule.priority == 10
+
+    def test_short_keyword_rejected(self):
+        router = ToolRouter()
+        assert router.route("run") is None
+        assert router.route("list") is None
+
+    def test_substring_directional_only(self):
+        router = ToolRouter()
+        result = router.route_task("run_workflow_custom")
+        assert result["routed"] is True
+        assert result["target"] == AgentTarget.LINGTONG.value
+
 
 # ── QualityGate ──
 

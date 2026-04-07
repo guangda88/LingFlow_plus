@@ -1,3 +1,4 @@
+from __future__ import annotations
 """LingFlow+ CLI 入口
 
 命令：
